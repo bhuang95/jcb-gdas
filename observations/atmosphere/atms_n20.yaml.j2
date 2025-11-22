@@ -77,6 +77,15 @@
       output file: "{{atmosphere_obsbiasout_path}}/{{atmosphere_obsbiascovout_prefix}}{{observation_from_jcb}}{{atmosphere_obsbiascovout_suffix}}"
 
   # ------------------------
+{% if atm_letkf_app_use_gsi_ncdiag | default(false) %}
+  obs filters:
+  - filter: PreQC
+  filter variables:
+  - name: brightnessTemperature
+  maxvalue: 0
+  action:
+    name: reject
+{% else %}
   obs pre filters:
   # Remove Observations from the Edge of the Scan
   - filter: Domain Check
@@ -620,6 +629,7 @@
       minvalue: 0.99
     action:
       name: reject
+{% endif %}
 
 {% if atm_letkf_app | default(false) %}
   # Observation Localizations (LocalEnsembleDA)
