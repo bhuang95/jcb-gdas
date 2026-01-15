@@ -1,0 +1,69 @@
+-
+
+  # Observation Space (I/O)
+  # -----------------------
+  obs space:
+    name: sondes_q
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: "{{atmosphere_obsdatain_path}}/{{atmosphere_obsdatain_prefix}}{{observation_from_jcb}}{{atmosphere_obsdatain_suffix}}"
+        missing file action: warn
+      obsgrouping:
+        group variables: ["stationIdentification"]
+        sort variable: "pressure"
+        sort order: "descending"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "{{atmosphere_obsdataout_path}}/{{atmosphere_obsdataout_prefix}}{{observation_from_jcb}}{{atmosphere_obsdataout_suffix}}"
+    io pool:
+      max pool size: 24
+    simulated variables: [specificHumidity]
+
+  # Observation Operator
+  # --------------------
+  obs operator:
+    name: Composite
+    components:
+    - name: VertInterp
+      variables:
+      - name: specificHumidity
+
+  # Linear Observation Operator
+  # ---------------------------
+  linear obs operator:
+    name: Composite
+    components:
+    - name: VertInterp
+      variables:
+      - name: specificHumidity
+
+  # Observation Filters (QC)
+  # ------------------------
+  obs filters:
+    #
+    # Reject all obs with PreQC mark already set above 0
+  - filter: PreQC
+    filter variables:
+    - name: specificHumidity
+    maxvalue: 0
+    action:
+      name: reject
+
+    #
+    # Gross error check with (O - B) / ObsError greater than threshold
+  - filter: Background Check
+    filter variables:
+    - name: specificHumidity
+    threshold: 8.0
+    action:
+      name: reject
+
+    #
+    # Domain check
+  #- filter: Domain Check
+  #  where:
+  #  - variable:
+  #      name: ObsTypeGes/specificHumidity
+  #    is_in: 120

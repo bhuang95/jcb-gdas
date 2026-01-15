@@ -9,6 +9,9 @@ variable change:
   - cloud_liquid_ice
   - cloud_liquid_water
   - ozone_mass_mixing_ratio
+  - snow_water
+  - rain_water
+  - graupel
   - geopotential_height_at_surface
   output variables: &fv3incrvars
   - eastward_wind
@@ -17,6 +20,9 @@ variable change:
   - water_vapor_mixing_ratio_wrt_moist_air
   - cloud_liquid_ice
   - cloud_liquid_water
+  - snow_water
+  - rain_water
+  - graupel
   - ozone_mass_mixing_ratio
   - air_pressure_thickness
   - layer_thickness
@@ -28,6 +34,9 @@ jedi increment variables:
 - water_vapor_mixing_ratio_wrt_moist_air
 - cloud_liquid_ice
 - cloud_liquid_water
+- snow_water
+- rain_water
+- graupel
 - ozone_mass_mixing_ratio
 fv3 increment variables: *fv3incrvars
 background geometry:
@@ -49,9 +58,9 @@ jedi increment geometry:
   layout:
   - {{ atmosphere_layout_x }}
   - {{ atmosphere_layout_y }}
-  npx: {{ atmosphere_npx_ges }}
-  npy: {{ atmosphere_npy_ges }}
-  npz: {{ atmosphere_npz_ges }}
+  npx: {{ atmosphere_npx_his }}
+  npy: {{ atmosphere_npy_his }}
+  npz: {{ atmosphere_npz_his }}
 fv3 increment geometry:
   fms initialization:
     namelist filename: ./fv3jedi/fmsmpp.nml
@@ -60,9 +69,9 @@ fv3 increment geometry:
   layout:
   - {{ atmosphere_layout_x }}
   - {{ atmosphere_layout_y }}
-  npx: {{ atmosphere_npx_ges }}
-  npy: {{ atmosphere_npy_ges }}
-  npz: {{ atmosphere_npz_ges }}
+  npx: {{ atmosphere_npx_his }}
+  npy: {{ atmosphere_npy_his }}
+  npz: {{ atmosphere_npz_his }}
 members:
 - background input:
     datapath: ./bkg
@@ -84,6 +93,9 @@ members:
       water_vapor_mixing_ratio_wrt_moist_air: spfh
       cloud_liquid_ice: icmr
       cloud_liquid_water: clwmr
+      snow_water: snmr
+      rain_water: rwmr
+      graupel: grle
       ozone_mass_mixing_ratio: o3mr
       geopotential_height_at_surface: hgtsfc
   jedi increment input:
@@ -93,10 +105,16 @@ members:
     datapath: ./anl
     filename: cubed_sphere_grid_atminc.jedi.nc
   fv3 increment output:
+{% if atmosphere_variational_increment_type == 'gaussian' %}
+    filetype: auxgrid
+    gridtype: gaussian
+    filename: ./anl/atminc.
+{% else %}
     filetype: fms restart
     is restart: false
     datapath: ./anl
     filename_nonrestart: {{ atmosphere_variational_analysis_prefix }}cubed_sphere_grid_atminc.nc
+{% endif %}
     field io names:
       eastward_wind: u_inc
       northward_wind: v_inc
@@ -105,6 +123,9 @@ members:
       cloud_liquid_water: liq_wat_inc
       ozone_mass_mixing_ratio: o3mr_inc
       cloud_liquid_ice: icmr_inc
+      snow_water: snmr_inc
+      rain_water: rwmr_inc
+      graupel: grle_inc
       air_pressure_thickness: delp_inc
       layer_thickness: delz_inc
 # Optionally test the application

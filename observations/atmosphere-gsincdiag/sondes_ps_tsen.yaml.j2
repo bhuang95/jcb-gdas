@@ -1,0 +1,72 @@
+-
+
+  # Observation Space (I/O)
+  # -----------------------
+  obs space:
+    name: sondes_ps_tsen
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: "{{atmosphere_obsdatain_path}}/{{atmosphere_obsdatain_prefix}}{{observation_from_jcb}}{{atmosphere_obsdatain_suffix}}"
+        missing file action: warn
+      obsgrouping:
+        group variables: ["stationIdentification"]
+        sort variable: "pressure"
+        sort order: "descending"
+    obsdataout:
+      engine:
+        type: H5File
+        obsfile: "{{atmosphere_obsdataout_path}}/{{atmosphere_obsdataout_prefix}}{{observation_from_jcb}}{{atmosphere_obsdataout_suffix}}"
+    io pool:
+      max pool size: 24
+    simulated variables: [stationPressure]
+
+  # Observation Operator
+  # --------------------
+  obs operator:
+    name: Composite
+    components:
+    - name: SfcCorrected
+      variables:
+      - name: stationPressure
+      correction scheme to use: GSL
+      geovar_sfc_geomz: geopotential_height_at_surface
+      geovar_geomz: geopotential_height
+
+  # Linear Observation Operator
+  # ---------------------------
+  linear obs operator:
+    name: Composite
+    components:
+    - name: Identity
+      variables:
+      - name: stationPressure
+
+  # Observation Filters (QC)
+  # ------------------------
+  obs filters:
+    #
+    # Reject all obs with PreQC mark already set above 0
+  - filter: PreQC
+    filter variables:
+    - name: stationPressure
+    maxvalue: 0
+    action:
+      name: reject
+
+    #
+    # Gross error check with (O - B) / ObsError greater than threshold
+  - filter: Background Check
+    filter variables:
+    - name: stationPressure
+    threshold: 5.0
+    action:
+      name: reject
+
+    #
+    # Domain check
+  #- filter: Domain Check
+  #  where:
+  #  - variable:
+  #      name: ObsTypeGes/stationPressure
+  #    is_in: 120
