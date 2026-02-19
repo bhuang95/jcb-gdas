@@ -79,7 +79,7 @@
     #
     # Reject all obs with PreQC mark already set above 0
   - filter: PreQC
-    maxvalue: 0.0
+    maxvalue: 0
     action:
       name: reject
 

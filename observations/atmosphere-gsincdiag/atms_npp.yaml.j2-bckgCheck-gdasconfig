@@ -3,7 +3,7 @@
   # Observation Space (I/O)
   # -----------------------
   obs space:
-    name: ATMS N20
+    name: ATMS NPP
     obsdatain:
       engine:
         type: H5File
@@ -30,7 +30,7 @@
     method for hydrometeor effective radii within fov: thompson
     Cloud_Seeding: true
     obs options:
-      Sensor_ID: &{{observation_from_jcb}}_sensor_id atms_n20
+      Sensor_ID: &{{observation_from_jcb}}_sensor_id atms_npp
       EndianType: little_endian
       CoefficientPath: "{{crtm_coefficient_path}}"
     do fov average: false
@@ -79,10 +79,80 @@
     #
     # Reject all obs with PreQC mark already set above 0
   - filter: PreQC
-    maxvalue: 0.0
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    maxvalue: 0
     action:
       name: reject
 
+  # Step 8: Gross check
+  # Remove data if abs(Obs-HofX) > absolute threshold
+  - filter: Variable Assignment
+    assignments:
+    - name: ObsErrorFactorLat@DerivedMetaData
+      type: float
+      function:
+        name: ObsErrorFactorLatRad@ObsFunction
+        options:
+          latitude_parameters: [25.0, 0.25, 0.04, 3.0]
+
+  - filter: Variable Assignment
+    assignments:
+    - name: ObsErrorBound@DerivedMetaData
+      channels: *{{observation_from_jcb}}_simulated_channels
+      type: float
+      function:
+        name: ObsErrorBoundMW@ObsFunction
+        channels: *{{observation_from_jcb}}_simulated_channels
+        options:
+          sensor: *{{observation_from_jcb}}_sensor_id
+          channels: *{{observation_from_jcb}}_simulated_channels
+          obserr_bound_latitude:
+            name: ObsErrorFactorLat@DerivedMetaData
+          obserr_bound_transmittop:
+            name: ObsErrorFactorTransmitTop@DerivedMetaData
+            channels: *{{observation_from_jcb}}_simulated_channels
+            options:
+              channels: *{{observation_from_jcb}}_simulated_channels
+          obserr_bound_topo:
+            name: ObsErrorFactorTopo@DerivedMetaData
+            channels: *{{observation_from_jcb}}_simulated_channels
+          obserr_function:
+            name: InitialObsError@DerivedMetaData
+            channels: *{{observation_from_jcb}}_simulated_channels
+          threshold: 3
+          threshold_precip: 2.5
+          obserr_bound_max: [{{ get_satellite_variable(observation_from_jcb, "ermax") }}]
+
+  - filter: Background Check
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    function absolute threshold:
+    - name: ObsErrorBound@DerivedMetaData
+      channels: *{{observation_from_jcb}}_simulated_channels
+    action:
+      name: reject
+
+  # Step 9: Inter-Channel Check
+  - filter: Bounds Check
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    test variables:
+    - name: InterChannelConsistencyCheck@ObsFunction
+      channels: *{{observation_from_jcb}}_simulated_channels
+      options:
+        channels: *{{observation_from_jcb}}_simulated_channels
+        use passive_bc: true
+        sensor: *{{observation_from_jcb}}_sensor_id
+        use_flag: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1, 1, 1, 1, 1, 1,
+          1]
+    maxvalue: 1.0e-12
+    action:
+      name: reject
+      
   # GeoVaLs for Driving Observation Operators (testing mode)
   # --------------------------------------------------------
   geovals:

@@ -1,0 +1,11 @@
+6c6
+<     name: {{observation_from_jcb}}
+---
+>     name: IASI METOP-A
+18d17
+< {% if rad_to_tb | default(false) %}
+20,21d18
+<     derived variables: [brightnessTemperature]
+< {% endif %}
+22a20
+>     derived variables: [brightnessTemperature]

@@ -79,10 +79,22 @@
     #
     # Reject all obs with PreQC mark already set above 0
   - filter: PreQC
-    maxvalue: 0.0
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    maxvalue: 0
     action:
       name: reject
 
+    # Gross error check with (O - B) / ObsError greater than threshold
+  - filter: Background Check
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    threshold: 3.0
+    action:
+      name: reject
+      
   # GeoVaLs for Driving Observation Operators (testing mode)
   # --------------------------------------------------------
   geovals:

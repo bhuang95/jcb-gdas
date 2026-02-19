@@ -3,7 +3,7 @@
   # Observation Space (I/O)
   # -----------------------
   obs space:
-    name: ATMS N20
+    name: IASI METOP-B
     obsdatain:
       engine:
         type: H5File
@@ -23,18 +23,10 @@
   obs operator:
     name: CRTM
     Absorbers: [H2O, O3, CO2]
-    Clouds: &{{observation_from_jcb}}_clouds [Water, Ice, Rain, Snow, Graupel]
-#   Cloud_Fraction: 1.0
-#   ---methods for cloud fraction and radii in fov: thompson, or none
-    method for cloud fraction within fov: thompson
-    method for hydrometeor effective radii within fov: thompson
-    Cloud_Seeding: true
     obs options:
-      Sensor_ID: &{{observation_from_jcb}}_sensor_id atms_n20
+      Sensor_ID: &{{observation_from_jcb}}_sensor_id iasi_metop-b
       EndianType: little_endian
       CoefficientPath: "{{crtm_coefficient_path}}"
-    do fov average: false
-    fov sample points per semimajor axis: 4
     linear obs operator:
       Absorbers: [H2O, O3]
 
@@ -79,7 +71,34 @@
     #
     # Reject all obs with PreQC mark already set above 0
   - filter: PreQC
-    maxvalue: 0.0
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    maxvalue: 0
+    action:
+      name: reject
+
+  # Step 15: Gross check
+  - filter: Background Check
+    filter variables:
+    - name: brightnessTemperature
+      channels: *{{observation_from_jcb}}_simulated_channels
+    function absolute threshold:
+    - name: ObsFunction/ObsErrorBoundIR
+      channels: *{{observation_from_jcb}}_simulated_channels
+      options:
+        channels: *{{observation_from_jcb}}_simulated_channels
+        obserr_bound_latitude:
+          name: ObsFunction/ObsErrorFactorLatRad
+          options:
+            latitude_parameters: [25.0, 0.5, 0.04, 1.0]
+        obserr_bound_transmittop:
+          name: ObsFunction/ObsErrorFactorTransmitTopRad
+          channels: *{{observation_from_jcb}}_simulated_channels
+          options:
+            channels: *{{observation_from_jcb}}_simulated_channels
+        obserr_bound_max: [{{ get_satellite_variable(observation_from_jcb, "ermax") }}]
+        error parameter vector: &{{observation_from_jcb}}_oberr [{{ get_satellite_variable(observation_from_jcb, "error") }}]
     action:
       name: reject
 
